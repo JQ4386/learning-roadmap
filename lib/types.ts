@@ -99,6 +99,11 @@ export type UserState = {
   };
 };
 
+/**
+ * Creates an empty user state.
+ *
+ * @returns An initialized `UserState` with all collections and maps empty and nested structures set to defaults.
+ */
 export function emptyState(): UserState {
   return {
     done: {},

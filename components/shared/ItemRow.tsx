@@ -6,6 +6,17 @@ import type { TrackItem } from "@/domain/config";
 import { CategoryChip } from "./CategoryChip";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 
+/**
+ * Renders a track item row with a completion toggle, metadata display, and completion animations.
+ *
+ * Displays the item's category, metadata label, title, and description. The toggle button marks items as done or incomplete.
+ * When the item transitions to completed (and reduced motion is disabled), a gradient sweep overlay and pop animation briefly display.
+ * An external link is rendered only if the item's URL is a valid http or https URL.
+ *
+ * @param item - The track item to display
+ * @param done - The item's completion state
+ * @param onToggle - Invoked when the completion toggle is clicked
+ */
 export function ItemRow({
   item,
   done,

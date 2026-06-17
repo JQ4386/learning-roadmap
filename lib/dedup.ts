@@ -25,6 +25,16 @@ const STOPWORDS = new Set([
   "why", "into", "over",
 ]);
 
+/**
+ * Normalizes a URL to a canonical form.
+ *
+ * Removes `www.` from the hostname, strips trailing slashes from the pathname,
+ * and converts to lowercase. If the input cannot be parsed as a URL, returns it in lowercase.
+ * Returns an empty string for null, undefined, or empty input.
+ *
+ * @param u - A URL string to canonicalize
+ * @returns The canonicalized URL, or an empty string if `u` is falsy
+ */
 export function canonUrl(u: string | null | undefined): string {
   if (!u) return "";
   try {
@@ -35,6 +45,11 @@ export function canonUrl(u: string | null | undefined): string {
   }
 }
 
+/**
+ * Computes the FNV-1a hash of a string.
+ *
+ * @returns The FNV-1a hash as a 32-bit unsigned integer.
+ */
 function fnv1a(s: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
@@ -44,6 +59,14 @@ function fnv1a(s: string): number {
   return h >>> 0;
 }
 
+/**
+ * Extracts meaningful tokens from text.
+ *
+ * Converts text to lowercase, splits on non-alphanumeric boundaries, and
+ * filters out tokens with length ≤ 2 and common stopwords.
+ *
+ * @returns An array of tokens.
+ */
 function tokenize(s: string): string[] {
   return String(s)
     .toLowerCase()
@@ -51,6 +74,11 @@ function tokenize(s: string): string[] {
     .filter((w) => w.length > 2 && !STOPWORDS.has(w));
 }
 
+/**
+ * Generates a 32-bit SimHash fingerprint for text.
+ *
+ * @returns A 32-bit unsigned integer hash
+ */
 export function simhash32(text: string): number {
   const v = new Array(32).fill(0);
   tokenize(text).forEach((t) => {
@@ -62,6 +90,11 @@ export function simhash32(text: string): number {
   return out >>> 0;
 }
 
+/**
+ * Computes the Hamming distance between two 32-bit integers.
+ *
+ * @returns The number of bit positions where `a` and `b` differ.
+ */
 export function hamming32(a: number, b: number): number {
   let x = (a ^ b) >>> 0,
     c = 0;
@@ -72,10 +105,21 @@ export function hamming32(a: number, b: number): number {
   return c;
 }
 
+/**
+ * Generates four LSH band keys from a 32-bit hash.
+ *
+ * @returns An array of four band key strings, each in the format `"bandIndex:byteValue"`.
+ */
 function bandKeys(h: number): string[] {
   return [0, 1, 2, 3].map((i) => i + ":" + ((h >>> (i * 8)) & 0xff));
 }
 
+/**
+ * Constructs a deduplication index from an optional bank of items.
+ *
+ * @param bank - Array of items with optional URLs and hashes, or null/undefined
+ * @returns `DedupIndex` containing exact-match tracking by URL and LSH-banded hashes for near-duplicate detection
+ */
 export function buildDedupIndex(bank: DedupBankItem[] | null | undefined): DedupIndex {
   const byUrl = new Set<string>();
   const bands = new Map<string, number[]>();
@@ -90,6 +134,12 @@ export function buildDedupIndex(bank: DedupBankItem[] | null | undefined): Dedup
   return { byUrl, bands };
 }
 
+/**
+ * Adds a URL and its SimHash to the deduplication index.
+ *
+ * @param u - The URL to add for exact matching
+ * @param hash - The 32-bit SimHash to store in band buckets
+ */
 export function indexAdd(idx: DedupIndex, u: string, hash: number): void {
   if (u) idx.byUrl.add(u);
   bandKeys(hash).forEach((k) => {
@@ -98,6 +148,14 @@ export function indexAdd(idx: DedupIndex, u: string, hash: number): void {
   });
 }
 
+/**
+ * Determines whether an item is a duplicate.
+ *
+ * Checks for exact URL matches first, then near-duplicates by comparing SimHash
+ * values within LSH band buckets using a Hamming distance threshold of 4.
+ *
+ * @returns `true` if the item is a duplicate, `false` otherwise
+ */
 export function isDup(idx: DedupIndex, u: string, hash: number): boolean {
   if (u && idx.byUrl.has(u)) return true;
   const seen = new Set<number>();

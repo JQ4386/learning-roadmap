@@ -826,7 +826,14 @@ export const QUESTIONS: Question[] = [
 // ---------------------------------------------------------------------------
 // SCOUT_PROMPT — the scout persona. A function of date, banked titles, and the
 // category list, so forks can fully rewrite the scouting brief here.
-// ---------------------------------------------------------------------------
+/**
+ * Generates a research scout prompt for finding recent multi-agent orchestration research.
+ *
+ * @param date - The current date
+ * @param bankedTitles - Previously reviewed research titles for deduplication
+ * @param categoryIds - Category identifiers to include in the search scope
+ * @returns An instruction prompt string for the research scout
+ */
 export function SCOUT_PROMPT(
   date: string,
   bankedTitles: string[],
@@ -850,6 +857,12 @@ export type CoachContext = {
   recentScans: string[];
 };
 
+/**
+ * Generates a weekly reflection coaching prompt string.
+ *
+ * @param ctx - The learner's activity context, including completed items, open gaps, recent scans, streak, and date.
+ * @returns An instruction prompt string for an AI coaching assistant with personalized context from the learner's activity.
+ */
 export function COACH_PROMPT(ctx: CoachContext): string {
   const done = ctx.completedThisWeek.length
     ? ctx.completedThisWeek.map((c) => `- ${c.title} — ${c.concept}`).join("\n")

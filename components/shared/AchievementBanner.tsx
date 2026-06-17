@@ -5,7 +5,12 @@ import { ACHIEVEMENTS } from "@/lib/achievements";
 import { AchievementIcon } from "./AchievementIcon";
 
 // Top banner that announces a newly-earned achievement, then auto-dismisses.
-// Consumes a queue of ids; shows them one at a time.
+/**
+ * Displays achievement notifications from a queue one at a time, auto-dismissing each after 4 seconds.
+ *
+ * @param queue - Array of achievement IDs to display sequentially
+ * @param onDone - Callback invoked when the current achievement is dismissed
+ */
 export function AchievementBanner({
   queue,
   onDone,

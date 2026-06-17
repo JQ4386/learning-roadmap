@@ -2,7 +2,9 @@
 
 import { useEffect } from "react";
 
-// Registers the offline-shell service worker once, on the client.
+/**
+ * Registers an offline-shell service worker in production environments.
+ */
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;

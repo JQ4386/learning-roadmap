@@ -21,12 +21,22 @@ type ChatError = {
   message: string;
 };
 
+/**
+ * Creates a JSON error response.
+ *
+ * @param error - The error details to include in the response
+ * @returns A NextResponse with `ok: false` and the provided error object
+ */
 function err(error: ChatError) {
   return NextResponse.json({ ok: false, error });
 }
 
 type InMessage = { role: "user" | "model"; text: string };
 
+/**
+ * Sends a request to the Google Gemini generative content API.
+ * @returns The raw response from the Google Generative Language API.
+ */
 async function callGemini(
   model: string,
   systemInstruction: string,
@@ -47,12 +57,26 @@ async function callGemini(
 
 // Note: x-forwarded-for is client-spoofable if not stripped by a trusted proxy.
 // That's acceptable here — this is only a light per-process anti-spam guard; the
-// durable per-user limit lives client-side in Firestore (scoutMeta).
+/**
+ * Extracts a client identifier from HTTP request headers for rate-limiting.
+ *
+ * @returns A client identifier string, typically derived from the `x-forwarded-for` or `x-real-ip` header, or `"anon"` if neither is available.
+ */
 function clientKey(req: Request): string {
   const xff = req.headers.get("x-forwarded-for") || "";
   return xff.split(",")[0].trim() || req.headers.get("x-real-ip") || "anon";
 }
 
+/**
+ * Generates a coach response to a user's chat request using the Gemini API.
+ *
+ * Enforces per-client rate limiting with a 2-second cooldown. Requires `GEMINI_API_KEY`
+ * environment variable. Returns structured error responses for rate limiting, missing
+ * configuration, API failures, and empty replies.
+ *
+ * @returns `{ ok: true, reply }` containing the generated coach message on success, or
+ * `{ ok: false, error }` with structured error details on failure.
+ */
 export async function POST(req: Request) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return err({ kind: "config", message: "Coach is not configured (missing API key)." });

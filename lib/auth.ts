@@ -25,6 +25,13 @@ export type AuthState = {
   signOut: () => Promise<void>;
 };
 
+/**
+ * Manages Firebase authentication state with optional email allowlist gating.
+ *
+ * If an email allowlist is configured, users whose email is not in the list are automatically signed out. Provides methods to sign in via Google popup and sign out.
+ *
+ * @returns The current authentication state and sign-in/sign-out operations.
+ */
 export function useAuth(): AuthState {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

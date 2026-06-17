@@ -11,7 +11,12 @@ const MAP: Record<string, ComponentType<LucideProps>> = {
   Trophy, Swords, Flag, CheckCheck, Radar, Flame,
 };
 
-// Resolve a lucide icon by the name stored in the achievement config.
+/**
+ * Renders a lucide icon component based on the provided achievement icon name.
+ *
+ * @param name - The name of the icon to render from the achievement icon set
+ * @returns A React element rendering the specified icon, or the Award icon if the name is not found
+ */
 export function AchievementIcon({ name, ...props }: { name: string } & LucideProps) {
   const Cmp = MAP[name] ?? Award;
   return <Cmp {...props} />;

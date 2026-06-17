@@ -24,6 +24,11 @@ export type SessionQuestion = {
   badge: Badge;
 };
 
+/**
+ * Creates a shuffled shallow copy of an array.
+ *
+ * @returns A shuffled shallow copy of `arr`
+ */
 function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -33,7 +38,14 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-// Validate a scout-generated quiz: string q, exactly 4 opts, integer a in 0-3.
+/**
+ * Validates that an object conforms to the BankQuiz structure.
+ *
+ * Checks for a non-empty string question, exactly 4 string options,
+ * an integer answer index between 0 and 3, and an explanation string.
+ *
+ * @returns `true` if valid, `false` otherwise.
+ */
 export function isValidBankQuiz(quiz: any): quiz is BankQuiz {
   return (
     !!quiz &&
@@ -49,6 +61,11 @@ export function isValidBankQuiz(quiz: any): quiz is BankQuiz {
   );
 }
 
+/**
+ * Creates a session question from a canon question with shuffled option order.
+ *
+ * @returns A session question with shuffled options and the correct answer index adjusted to reflect the new order
+ */
 function fromCanon(qn: Question, badge: Badge): SessionQuestion {
   const order = shuffle(qn.opts.map((_, i) => i));
   return {
@@ -62,6 +79,13 @@ function fromCanon(qn: Question, badge: Badge): SessionQuestion {
   };
 }
 
+/**
+ * Converts a bank entry into a session question if its quiz is valid.
+ *
+ * @param entry - The bank entry to convert
+ * @param badge - The badge to apply to the resulting question
+ * @returns A session question with shuffled options and remapped correct answer index, or `null` if the entry's quiz is invalid
+ */
 function fromBank(entry: BankEntry, badge: Badge): SessionQuestion | null {
   if (!isValidBankQuiz(entry.quiz)) return null;
   const quiz = entry.quiz as BankQuiz;
@@ -77,11 +101,20 @@ function fromBank(entry: BankEntry, badge: Badge): SessionQuestion | null {
   };
 }
 
+/**
+ * Filters bank entries to only those with valid quiz data.
+ *
+ * @returns Entries from `state.bank` whose `quiz` passes validation.
+ */
 function validBankEntries(state: UserState): BankEntry[] {
   return (state.bank || []).filter((b) => isValidBankQuiz(b.quiz));
 }
 
-// Most recent doneAt among a question's src items, or null if none done.
+/**
+ * Finds the most recent completion timestamp among a question's source items.
+ *
+ * @returns The most recent finite timestamp in milliseconds, or `null` if no completed items are found.
+ */
 function recencyOf(qn: Question, state: UserState): number | null {
   let best: number | null = null;
   qn.src.forEach((id) => {
@@ -93,11 +126,28 @@ function recencyOf(qn: Question, state: UserState): number | null {
   return best;
 }
 
-// Is true if at least one item teaching this question has been completed.
+/**
+ * Determines whether the quiz pool contains completed questions.
+ *
+ * @returns `true` if at least one question has been completed, `false` otherwise.
+ */
 export function hasRecentMaterial(state: UserState): boolean {
   return QUESTIONS.some((q) => recencyOf(q, state) !== null);
 }
 
+/**
+ * Builds a quiz session of up to 5 shuffled questions according to the specified mode.
+ *
+ * The composition varies by mode:
+ * - `"cat"`: Questions from the specified category.
+ * - `"random"`: A mix of canon and validated bank questions.
+ * - `"recent"`: Up to 4 most recently completed questions plus an optional new question.
+ *
+ * @param mode - The session mode.
+ * @param state - The user state containing completed questions and bank entries.
+ * @param catId - The category ID, required when `mode` is "cat".
+ * @returns An array of up to 5 shuffled session questions.
+ */
 export function buildSession(mode: QuizMode, state: UserState, catId?: string): SessionQuestion[] {
   if (mode === "cat" && catId) {
     const pool = QUESTIONS.filter((q) => q.cat === catId);

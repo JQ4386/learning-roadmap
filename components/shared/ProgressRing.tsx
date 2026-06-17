@@ -12,7 +12,20 @@ type Props = {
   color?: string;
 };
 
-// Animated SVG progress ring with a count-up number.
+/**
+ * Renders an animated circular progress ring with an overlaid label.
+ *
+ * The displayed percentage smoothly animates toward the `value` prop using a cubic ease-out
+ * curve over 900ms, continuing from the previously displayed value. When reduced motion is
+ * preferred, the value updates immediately without animation.
+ *
+ * @param value - Target percentage value, expected to be 0–100
+ * @param size - SVG and container width/height in pixels. Default: 96
+ * @param stroke - Ring stroke width in pixels. Default: 8
+ * @param label - Center text display; defaults to the current percentage
+ * @param sublabel - Secondary text below the main label
+ * @param color - Ring stroke color. Default: "#FF8A3D"
+ */
 export function ProgressRing({
   value,
   size = 96,

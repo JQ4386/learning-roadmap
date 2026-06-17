@@ -33,12 +33,22 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "streak_7", label: "Streak ×7", desc: "7-day activity streak", icon: "Flame" },
 ];
 
+/**
+ * Retrieves the item ids from a phase.
+ *
+ * @returns The item ids from the matching phase, or an empty array if the phase is not found.
+ */
 function phaseItemIds(phaseId: string): string[] {
   const p = PHASES.find((x) => x.id === phaseId);
   return p ? p.items.map((i) => i.id) : [];
 }
 
-// Resolve an item id to its category, checking the curriculum then custom items.
+/**
+ * Determines the category of an item from the curriculum or custom items.
+ *
+ * @param id - The item ID to look up
+ * @returns The item's category, or `null` if not found
+ */
 function itemCategory(id: string, state: UserState): string | null {
   for (const p of PHASES) {
     const found = p.items.find((i) => i.id === id);
@@ -48,11 +58,20 @@ function itemCategory(id: string, state: UserState): string | null {
   return c ? c.cat : null;
 }
 
+/**
+ * Retrieves the ids of completed items.
+ *
+ * @returns An array of item ids from `state.done` with truthy values.
+ */
 function doneIds(state: UserState): string[] {
   return Object.keys(state.done).filter((id) => state.done[id]);
 }
 
-// Collect day-keys (YYYY-MM-DD) on which any activity happened.
+/**
+ * Collects calendar dates on which any activity occurred.
+ *
+ * @returns A set of date strings in `YYYY-MM-DD` format representing days with activity.
+ */
 function activityDays(state: UserState): Set<string> {
   const days = new Set<string>();
   const add = (iso?: string | null) => {
@@ -69,11 +88,21 @@ function activityDays(state: UserState): Set<string> {
   return days;
 }
 
+/**
+ * Converts a date to a string in YYYY-MM-DD format.
+ *
+ * @param d - The date to convert
+ * @returns The date formatted as YYYY-MM-DD
+ */
 function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-// Longest run of consecutive calendar days present in the activity set.
+/**
+ * Finds the longest consecutive run of days with activity.
+ *
+ * @returns The length of the longest consecutive streak of activity days.
+ */
 export function longestStreak(state: UserState): number {
   const days = [...activityDays(state)].sort();
   if (!days.length) return 0;
@@ -91,7 +120,11 @@ export function longestStreak(state: UserState): number {
 }
 
 // Current streak: consecutive days ending today (or yesterday, so the flame
-// survives until the day's first activity).
+/**
+ * Computes the activity streak of consecutive days ending on today (or yesterday if today has no activity).
+ *
+ * @returns The count of consecutive activity days.
+ */
 export function currentStreak(state: UserState): number {
   const days = activityDays(state);
   if (!days.size) return 0;
@@ -109,11 +142,20 @@ export function currentStreak(state: UserState): number {
   return count;
 }
 
+/**
+ * Calculates the total number of questions answered across all quiz attempts.
+ *
+ * @returns The sum of answered questions across all quiz stats entries.
+ */
 function questionsAnswered(state: UserState): number {
   return Object.values(state.quiz.stats).reduce((sum, s) => sum + (s?.a || 0), 0);
 }
 
-// Return the set of achievement ids currently earned by the state.
+/**
+ * Computes which achievements have been earned based on the current state.
+ *
+ * @returns A set of achievement IDs currently earned.
+ */
 export function evaluateAchievements(state: UserState): Set<string> {
   const earned = new Set<string>();
   const done = doneIds(state);
@@ -159,7 +201,12 @@ export function evaluateAchievements(state: UserState): Set<string> {
 }
 
 // Diff earned-vs-stored. Returns the newly-earned achievement ids (to celebrate)
-// and the merged achievements map (with unlock dates) to persist.
+/**
+ * Identifies newly earned achievements by comparing current evaluation against stored achievements.
+ *
+ * @param todayIso - The date string to assign as the unlock date for newly earned achievements
+ * @returns An object containing the newly earned achievement ids and the updated achievements map with unlock dates
+ */
 export function diffAchievements(
   state: UserState,
   todayIso: string

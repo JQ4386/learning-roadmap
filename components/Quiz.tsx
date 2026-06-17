@@ -15,6 +15,13 @@ import { useReducedMotion } from "@/lib/useReducedMotion";
 
 type Phase = "pick" | "play" | "score";
 
+/**
+ * Generates a calibrated performance message for a quiz result.
+ *
+ * @param score - Number of correct answers
+ * @param total - Total number of questions
+ * @returns A performance-tier message reflecting the success ratio
+ */
 function calibratedMessage(score: number, total: number): string {
   const r = total ? score / total : 0;
   if (r === 1) return "Clean sweep. Calibrated.";
@@ -24,6 +31,14 @@ function calibratedMessage(score: number, total: number): string {
   return "Rough run. That's data, not failure.";
 }
 
+/**
+ * Renders a quiz interface with mode selection, question answering, and score display.
+ *
+ * Manages a three-phase quiz experience: selecting a quiz mode (recent learning, random, or by category),
+ * answering questions with immediate visual feedback, and displaying final results. Updates user statistics
+ * (answered and correct counts per question) and quiz history upon completion. Triggers a confetti animation
+ * for perfect scores with five or more questions. Respects reduced motion preferences when applying animations.
+ */
 export function Quiz({
   state,
   update,

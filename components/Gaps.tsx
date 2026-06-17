@@ -4,6 +4,12 @@ import { useState } from "react";
 import { Plus, Check, Trash2, RotateCcw } from "lucide-react";
 import type { UserState } from "@/lib/types";
 
+/**
+ * Provides an interface for logging and managing learning gaps.
+ *
+ * @param state - The user state containing the list of gaps
+ * @param update - Function to mutate the user state with gap changes
+ */
 export function Gaps({
   state,
   update,

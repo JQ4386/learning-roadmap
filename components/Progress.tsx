@@ -8,6 +8,12 @@ import { itemById } from "@/lib/curriculum";
 import { AchievementIcon } from "@/components/shared/AchievementIcon";
 import { CategoryChip } from "@/components/shared/CategoryChip";
 
+/**
+ * Computes the Monday date for the week containing the input date.
+ *
+ * @param d - The input date
+ * @returns The Monday of the input date's week, at midnight
+ */
 function weekStart(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -16,10 +22,20 @@ function weekStart(d: Date): Date {
   return x;
 }
 
+/**
+ * Formats a date with the month abbreviation and day number.
+ *
+ * @returns A formatted date string (e.g., 'Jan 5')
+ */
 function fmtWeek(d: Date): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+/**
+ * Renders a user progress dashboard displaying streak, achievements, and activity history.
+ *
+ * @param state - The user state containing progress data
+ */
 export function Progress({ state }: { state: UserState }) {
   const streak = currentStreak(state);
   const achCount = Object.keys(state.achievements || {}).length;

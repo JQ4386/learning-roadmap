@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 
 // True when the user prefers reduced motion. CSS already neutralizes keyframe
-// animations; this lets JS-driven effects (e.g. confetti) opt out too.
+/**
+ * Determines if the user prefers reduced motion.
+ *
+ * @returns `true` if the user prefers reduced motion, `false` otherwise.
+ */
 export function useReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
   useEffect(() => {

@@ -28,6 +28,11 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/**
+ * Establishes the root application shell with toast notifications and service worker support.
+ *
+ * @returns The root HTML document structure configured with the specified language and body content.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

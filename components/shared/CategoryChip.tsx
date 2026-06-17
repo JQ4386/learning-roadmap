@@ -2,7 +2,12 @@
 
 import { catColor, catShort } from "@/lib/curriculum";
 
-// Small category tag, tinted with the category color from config.
+/**
+ * Renders a small styled chip displaying a category label, colored according to the category.
+ *
+ * @param cat - The category identifier, used to derive the chip's color and display text
+ * @param className - Optional CSS classes to append to the component's base styles
+ */
 export function CategoryChip({ cat, className = "" }: { cat: string; className?: string }) {
   const color = catColor(cat);
   return (

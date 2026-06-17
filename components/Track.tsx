@@ -7,6 +7,16 @@ import type { UserState } from "@/lib/types";
 import { ItemRow } from "@/components/shared/ItemRow";
 import { useToast } from "@/components/shared/Toast";
 
+/**
+ * Renders collapsible sections of trackable items with completion toggles.
+ *
+ * Displays each item with a checkbox, tracks the completion count per section, and triggers
+ * a celebration callback when all items in a section are marked complete.
+ *
+ * @param state - Contains item completion data
+ * @param update - Function to update item completion state and timestamps
+ * @param onConfetti - Callback invoked when a section becomes fully complete
+ */
 export function Track({
   state,
   update,

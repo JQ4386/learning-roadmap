@@ -16,12 +16,24 @@ const CRC_TABLE = (() => {
   return t;
 })();
 
+/**
+ * Computes the CRC-32 checksum of a buffer.
+ * @param {Buffer} buf - The buffer to checksum.
+ * @return {number} The CRC-32 checksum as an unsigned 32-bit integer.
+ */
 function crc32(buf) {
   let c = 0xffffffff;
   for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
   return (c ^ 0xffffffff) >>> 0;
 }
 
+/**
+ * Writes an RGBA PNG file to disk.
+ * @param {string} file - The output file path.
+ * @param {number} w - The image width in pixels.
+ * @param {number} h - The image height in pixels.
+ * @param {Buffer} px - The RGBA pixel buffer.
+ */
 function writePng(file, w, h, px) {
   const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const chunk = (type, data) => {
@@ -60,6 +72,12 @@ const ACCENT = hex("FF8A3D");
 const SKY = hex("7DD3FC");
 const PURPLE = hex("C4B5FD");
 
+/**
+ * Renders a procedural icon at the specified dimensions.
+ * @param {number} size - The output icon size in pixels (width and height).
+ * @param {number} [scale=1.0] - Scaling factor for the rendered geometry.
+ * @returns {Buffer} An RGBA pixel buffer of the specified dimensions.
+ */
 function render(size, scale = 1.0) {
   const ss = 3;
   const R = size * ss;

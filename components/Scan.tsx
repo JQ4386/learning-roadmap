@@ -25,6 +25,12 @@ const PRIORITY_STYLE: Record<Rec["priority"], { label: string; cls: string }> = 
   later: { label: "LATER", cls: "bg-slate-400/15 text-slate-300" },
 };
 
+/**
+ * Scout scan interface that runs scans, displays results and exploration trace, and enables adding items to a tracking list.
+ *
+ * @param state - The current user state containing scan results, bank entries, and scout metadata.
+ * @param update - A function that accepts a mutator to update the user state.
+ */
 export function Scan({
   state,
   update,
@@ -316,6 +322,11 @@ export function Scan({
   );
 }
 
+/**
+ * Renders a labeled text field, or nothing if the value is empty.
+ *
+ * @returns The labeled text block if value is non-empty, otherwise `null`.
+ */
 function Field({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return (

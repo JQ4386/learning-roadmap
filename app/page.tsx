@@ -26,6 +26,11 @@ const TABS: { id: Tab; label: string; icon: typeof ListChecks }[] = [
   { id: "coach", label: "Coach", icon: MessageCircle },
 ];
 
+/**
+ * Main authenticated dashboard page that displays learning progress, manages achievement celebrations, and provides navigation to learning tools.
+ *
+ * Gates rendering on Firebase configuration and authentication state. For signed-in users, displays an overall progress ring, manages a queue of achievement banners with confetti celebrations, and conditionally renders one of six learning views (Track, Progress, Quiz, Gaps, Scan, Coach) based on the active tab. Also includes a fixed bottom navigation bar for tab switching.
+ */
 export default function Home() {
   const { user, loading, ready, error, signIn, signOut } = useAuth();
   const { state, ready: stateReady, update, newlyEarned, clearNewlyEarned } = useUserState(
@@ -165,6 +170,9 @@ export default function Home() {
   );
 }
 
+/**
+ * Wraps children in a centered layout with full viewport height.
+ */
 function Centered({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center">

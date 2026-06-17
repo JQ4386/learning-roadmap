@@ -36,12 +36,24 @@ type ScanError = {
   message: string;
 };
 
+/**
+ * Builds a standardized error response for client rendering.
+ *
+ * @returns A `NextResponse` with the given status code and JSON body `{ ok: false, error }`
+ */
 function err(error: ScanError, status = 200) {
   return NextResponse.json({ ok: false, error }, { status });
 }
 
 // Brace-balanced, string-aware extraction of the first complete JSON object.
-// Tolerates braces inside string values; does NOT naively grab the last brace.
+/**
+ * Extracts the first complete brace-balanced JSON object from text.
+ *
+ * Correctly handles string literals and nested structures, extracting only
+ * the first complete JSON object.
+ *
+ * @returns The substring containing the first complete JSON object, or `null` if none found.
+ */
 function extractJson(text: string): string | null {
   const start = text.indexOf("{");
   if (start < 0) return null;
@@ -66,6 +78,14 @@ function extractJson(text: string): string | null {
   return null;
 }
 
+/**
+ * Calls the Gemini API to generate content with Google Search grounding.
+ *
+ * @param model - The model identifier (e.g., "gemini-3.5-flash")
+ * @param prompt - The user prompt
+ * @param key - The Gemini API key
+ * @returns The Response from the Gemini API
+ */
 async function callGemini(model: string, prompt: string, key: string) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
   const res = await fetch(url, {
@@ -81,11 +101,26 @@ async function callGemini(model: string, prompt: string, key: string) {
   return res;
 }
 
+/**
+ * Extracts a client identifier from request headers for rate limiting.
+ *
+ * @returns The first IP from X-Forwarded-For, X-Real-IP, or "anon" if neither is present
+ */
 function clientKey(req: Request): string {
   const xff = req.headers.get("x-forwarded-for") || "";
   return xff.split(",")[0].trim() || req.headers.get("x-real-ip") || "anon";
 }
 
+/**
+ * Generates scout recommendations using Gemini API with per-client rate limiting and deduplication.
+ *
+ * Requires `GEMINI_API_KEY` environment variable. Enforces per-client rate limiting with cooldown
+ * and daily caps, keyed by client IP. Deduplicates recommendations against the provided knowledge
+ * bank and returns up to 10 items with search trace metadata.
+ *
+ * @returns `{ ok: false, error }` on validation or rate limit failure; `{ ok: true, trace, suppressed, recs }`
+ * on success with grounding trace, suppression count, and recommendations.
+ */
 export async function POST(req: Request) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return err({ kind: "config", message: "Scout is not configured (missing API key)." });

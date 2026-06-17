@@ -7,7 +7,13 @@ type ToastCtx = (msg: string) => void;
 
 const Ctx = createContext<ToastCtx>(() => {});
 
-// Lightweight toast provider. Call useToast() to push transient messages.
+/**
+ * Provides transient toast notifications to the application.
+ *
+ * Wraps the application with a toast context that enables child components to push 
+ * temporary messages via the `useToast()` hook. Toasts are automatically removed 
+ * after a brief delay.
+ */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
 
@@ -39,6 +45,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Provides access to the toast push function.
+ *
+ * @returns A function that accepts a message string and enqueues a toast notification.
+ */
 export function useToast(): ToastCtx {
   return useContext(Ctx);
 }

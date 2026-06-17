@@ -7,7 +7,14 @@ const COLORS = ["#FF8A3D", "#7DD3FC", "#C4B5FD", "#FCD34D", "#86EFAC", "#F9A8D4"
 
 type Piece = { id: number; left: number; delay: number; dur: number; color: string; size: number };
 
-// Fire-and-forget confetti burst. Renders nothing when reduced motion is on.
+/**
+ * Renders a fire-and-forget confetti burst animation.
+ *
+ * When `fireKey` changes, a new confetti animation is triggered. If reduced motion
+ * is enabled, no animation is rendered.
+ *
+ * @param fireKey - Trigger for initiating a new confetti burst
+ */
 export function Confetti({ fireKey }: { fireKey: number }) {
   const reduced = useReducedMotion();
   const [pieces, setPieces] = useState<Piece[]>([]);

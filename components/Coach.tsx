@@ -7,6 +7,12 @@ import type { CoachContext } from "@/domain/config";
 import { currentStreak } from "@/lib/achievements";
 import { progressCounts, itemById } from "@/lib/curriculum";
 
+/**
+ * Computes the timestamp for the Monday at midnight of the week containing the given date.
+ *
+ * @param d - The date within the desired week
+ * @returns The timestamp (in milliseconds) for the Monday at midnight
+ */
 function weekStart(d: Date): number {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -15,7 +21,11 @@ function weekStart(d: Date): number {
   return x.getTime();
 }
 
-// Build the personalized context the coach sees from the user's real state.
+/**
+ * Builds the personalized context the coach uses for generating feedback.
+ *
+ * @returns A context object containing today's date, current streak, total items completed, items completed this week, unresolved gaps, and recent scan history
+ */
 function buildContext(state: UserState): CoachContext {
   const thisWeek = weekStart(new Date());
   const completedThisWeek = Object.keys(state.done)
@@ -36,6 +46,12 @@ function buildContext(state: UserState): CoachContext {
   };
 }
 
+/**
+ * Renders a weekly reflection chat interface for coaching conversations.
+ *
+ * Displays a conversation history and allows users to send reflections for coaching feedback.
+ * Shows a prompt to start a new week's check-in when no check-in has been recorded for the current week.
+ */
 export function Coach({
   state,
   update,

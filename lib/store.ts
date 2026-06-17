@@ -17,14 +17,23 @@ import { emptyState, type UserState } from "@/lib/types";
 import { diffAchievements } from "@/lib/achievements";
 
 const DEBOUNCE_MS = 400;
-const ECHO_SUPPRESS_MS = 1500; // ignore snapshots right after our own write
+const ECHO_SUPPRESS_MS = 1500; /**
+ * Gets the current date and time in ISO 8601 format.
+ *
+ * @returns The current date and time in ISO 8601 format.
+ */
 
 function todayIso(): string {
   return new Date().toISOString();
 }
 
 // Merge a possibly-partial Firestore document onto a complete default shape so
-// older/partial documents never produce undefined fields.
+/**
+ * Merges partial data with defaults to produce a complete UserState.
+ *
+ * @param raw - Partial or invalid user state data
+ * @returns A complete UserState with all fields initialized to safe defaults
+ */
 function hydrate(raw: any): UserState {
   const base = emptyState();
   if (!raw || typeof raw !== "object") return base;
@@ -59,7 +68,11 @@ function hydrate(raw: any): UserState {
 }
 
 // Stamp doneAt for any completed item missing a date (prototype added dating
-// later). Returns true if anything changed.
+/**
+ * Adds missing completion timestamps for items marked as done.
+ *
+ * @returns `true` if any timestamps were added, `false` otherwise.
+ */
 function migrate(state: UserState): boolean {
   let changed = false;
   const today = todayIso().slice(0, 10);
@@ -80,6 +93,16 @@ export type Store = {
   clearNewlyEarned: () => void;
 };
 
+/**
+ * Loads and synchronizes user state from Firestore with live updates and debounced writes.
+ *
+ * Hydrates the initial document and performs a one-time migration of missing completion timestamps.
+ * Subsequent changes from other devices are reflected in real-time. Local mutations are debounced
+ * (400ms) before persisting. Achievements are recomputed on every local change, and newly earned IDs are tracked.
+ *
+ * @param uid - The user ID. If null, the subscription is disabled.
+ * @returns A Store object containing the current user state, a ready flag, an update function, and accumulated newly earned achievement IDs.
+ */
 export function useUserState(uid: string | null): Store {
   const [state, setState] = useState<UserState>(() => emptyState());
   const [ready, setReady] = useState(false);
