@@ -8,7 +8,13 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase, supabaseReady } from "@/lib/supabase";
 
 // Optional email allowlist. Empty = allow all signed-in users.
-const ALLOWLIST: string[] = ["jq4386@gmail.com"];
+// Note: this is UX gating only — the authoritative boundary is Supabase RLS,
+// which scopes every row to its owner (auth.uid()), so even a non-allowlisted
+// session can only ever touch its own empty row, never another user's data.
+// Stored normalized (trimmed, lower-cased) so comparison is case-insensitive.
+const ALLOWLIST: string[] = ["jq4386@gmail.com"].map((e) =>
+  e.trim().toLowerCase()
+);
 
 // A storage-agnostic user shape. `uid` mirrors the old Firebase field name so
 // the rest of the app (e.g. useUserState(user.uid)) is unaffected by the swap.
@@ -47,7 +53,7 @@ export function useAuth(): AuthState {
       if (
         sUser &&
         ALLOWLIST.length &&
-        (!sUser.email || !ALLOWLIST.includes(sUser.email))
+        (!sUser.email || !ALLOWLIST.includes(sUser.email.trim().toLowerCase()))
       ) {
         // Not on the allowlist — sign back out.
         setError("This account is not on the allowlist.");

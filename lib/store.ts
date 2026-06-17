@@ -17,7 +17,6 @@ import { emptyState, type UserState } from "@/lib/types";
 import { diffAchievements } from "@/lib/achievements";
 
 const DEBOUNCE_MS = 400;
-const ECHO_SUPPRESS_MS = 1500;
 const TABLE = "user_state";
 
 /**
@@ -114,19 +113,29 @@ export function useUserState(uid: string | null): Store {
   const stateRef = useRef(state);
   stateRef.current = state;
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const suppressUntil = useRef(0);
+  // Timestamp of our most recent successful-intent write, used to recognize and
+  // ignore the Realtime echo of our own change (see the channel handler below).
+  const lastWrittenAt = useRef<string | null>(null);
   const pending = useRef<UserState | null>(null);
 
   const flush = useCallback(() => {
     if (!uid || !supabase || !pending.current) return;
     const payload = pending.current;
-    pending.current = null;
-    suppressUntil.current = Date.now() + ECHO_SUPPRESS_MS;
+    const stamp = todayIso();
+    lastWrittenAt.current = stamp;
     supabase
       .from(TABLE)
-      .upsert({ user_id: uid, state: payload, updated_at: todayIso() })
+      .upsert({ user_id: uid, state: payload, updated_at: stamp })
       .then(({ error }) => {
-        if (error) console.error("Supabase write failed", error);
+        if (error) {
+          // Keep the payload pending so the next flush retries it, unless a
+          // newer mutation has already queued in its place. Never drop data.
+          console.error("Supabase write failed", error);
+          if (!pending.current) pending.current = payload;
+          return;
+        }
+        // Clear only the payload we just wrote; a newer one may be queued.
+        if (pending.current === payload) pending.current = null;
       });
   }, [uid]);
 
@@ -157,8 +166,9 @@ export function useUserState(uid: string | null): Store {
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
+          // Stay not-ready on a failed read: rendering with empty/stale state
+          // here would let a subsequent write clobber the real persisted row.
           console.error("Supabase read failed", error);
-          setReady(true);
           return;
         }
         const hydrated = hydrate(data?.state ?? null);
@@ -177,10 +187,20 @@ export function useUserState(uid: string | null): Store {
         "postgres_changes",
         { event: "*", schema: "public", table: TABLE, filter: `user_id=eq.${uid}` },
         (payload) => {
-          // Ignore echoes of our own recent write.
-          if (Date.now() < suppressUntil.current) return;
-          const next = (payload.new as any)?.state;
-          if (next) setState(hydrate(next));
+          const row = payload.new as any;
+          const next = row?.state;
+          if (!next) return;
+          // Ignore only the echo of our own write (same updated_at), so genuine
+          // cross-device updates — which carry a different timestamp — always
+          // hydrate, even if they land right after a local change.
+          if (
+            lastWrittenAt.current &&
+            row.updated_at &&
+            Date.parse(row.updated_at) === Date.parse(lastWrittenAt.current)
+          ) {
+            return;
+          }
+          setState(hydrate(next));
         }
       )
       .subscribe();
