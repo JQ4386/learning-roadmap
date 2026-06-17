@@ -45,6 +45,10 @@ function hydrate(raw: any): UserState {
       date: raw.scan?.date ?? null,
       suppressed: raw.scan?.suppressed ?? 0,
     },
+    coach: {
+      messages: Array.isArray(raw.coach?.messages) ? raw.coach.messages : [],
+      lastCheckIn: raw.coach?.lastCheckIn,
+    },
     scoutMeta: raw.scoutMeta ?? {},
   };
 }

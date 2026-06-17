@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ListChecks, BarChart3, Brain, Flag, Radar, LogOut, LogIn } from "lucide-react";
+import { ListChecks, BarChart3, Brain, Flag, Radar, MessageCircle, LogOut, LogIn } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useUserState } from "@/lib/store";
 import { progressCounts } from "@/lib/curriculum";
@@ -13,8 +13,9 @@ import { Progress } from "@/components/Progress";
 import { Quiz } from "@/components/Quiz";
 import { Gaps } from "@/components/Gaps";
 import { Scan } from "@/components/Scan";
+import { Coach } from "@/components/Coach";
 
-type Tab = "track" | "progress" | "quiz" | "gaps" | "scan";
+type Tab = "track" | "progress" | "quiz" | "gaps" | "scan" | "coach";
 
 const TABS: { id: Tab; label: string; icon: typeof ListChecks }[] = [
   { id: "track", label: "Track", icon: ListChecks },
@@ -22,6 +23,7 @@ const TABS: { id: Tab; label: string; icon: typeof ListChecks }[] = [
   { id: "quiz", label: "Quiz", icon: Brain },
   { id: "gaps", label: "Gaps", icon: Flag },
   { id: "scan", label: "Scan", icon: Radar },
+  { id: "coach", label: "Coach", icon: MessageCircle },
 ];
 
 export default function Home() {
@@ -131,6 +133,7 @@ export default function Home() {
           {tab === "quiz" && <Quiz state={state} update={update} onConfetti={fireConfetti} />}
           {tab === "gaps" && <Gaps state={state} update={update} />}
           {tab === "scan" && <Scan state={state} update={update} />}
+          {tab === "coach" && <Coach state={state} update={update} />}
         </div>
       )}
 

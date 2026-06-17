@@ -73,6 +73,13 @@ export type ScanState = {
   suppressed: number;
 };
 
+export type CoachMessage = { role: "user" | "model"; text: string; date: string };
+
+export type CoachState = {
+  messages: CoachMessage[];
+  lastCheckIn?: string; // ISO timestamp of the last weekly check-in kickoff
+};
+
 export type UserState = {
   done: Record<string, boolean>;
   doneAt: Record<string, string>; // ISO date per completed item id
@@ -82,6 +89,7 @@ export type UserState = {
   achievements: Record<string, string>; // id -> unlock date
   bank: BankEntry[];
   scan: ScanState;
+  coach: CoachState;
   // Per-user scout rate-limit bookkeeping (server-enforced).
   scoutMeta?: {
     lastScanAt?: string; // ISO
@@ -100,6 +108,7 @@ export function emptyState(): UserState {
     achievements: {},
     bank: [],
     scan: { trace: [], recs: [], date: null, suppressed: 0 },
+    coach: { messages: [] },
     scoutMeta: {},
   };
 }
