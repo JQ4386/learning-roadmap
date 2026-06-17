@@ -199,6 +199,7 @@ export function Coach({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send(input, false)}
+          aria-label="Type your reflection"
           placeholder="Type your reflection…"
           disabled={sending}
           className="flex-1 rounded-full border border-border bg-surface px-4 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none disabled:opacity-60"
