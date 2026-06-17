@@ -33,6 +33,3 @@ yarn-error.log*
 
 # generated at build time by scripts/gen-icons.mjs
 /public/icons/
-
-# lockfile regenerated on install (small personal app)
-/package-lock.json

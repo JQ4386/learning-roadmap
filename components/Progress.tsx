@@ -30,7 +30,7 @@ export function Progress({ state }: { state: UserState }) {
       .filter((id) => state.done[id])
       .map((id) => ({ id, date: state.doneAt[id] || "", item: itemById(id, state.custom) }))
       .filter((x) => x.item)
-      .sort((a, b) => (a.date < b.date ? 1 : -1));
+      .sort((a, b) => b.date.localeCompare(a.date));
   }, [state]);
 
   // 8-week activity bar chart (all activity events per week).

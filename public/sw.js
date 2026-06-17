@@ -37,11 +37,24 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put("/", copy));
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            event.waitUntil(caches.open(CACHE).then((c) => c.put("/", copy)));
+          }
           return res;
         })
-        .catch(() => caches.match("/").then((r) => r || caches.match(req)))
+        .catch(async () => {
+          const shell = await caches.match("/");
+          const cachedReq = await caches.match(req);
+          return (
+            shell ||
+            cachedReq ||
+            new Response("Offline", {
+              status: 503,
+              headers: { "Content-Type": "text/plain; charset=utf-8" },
+            })
+          );
+        })
     );
     return;
   }
@@ -53,11 +66,11 @@ self.addEventListener("fetch", (event) => {
         .then((res) => {
           if (res && res.status === 200) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
+            event.waitUntil(caches.open(CACHE).then((c) => c.put(req, copy)));
           }
           return res;
         })
-        .catch(() => cached);
+        .catch(() => cached || new Response("", { status: 504, statusText: "Gateway Timeout" }));
       return cached || network;
     })
   );

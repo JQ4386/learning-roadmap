@@ -12,7 +12,13 @@ export function ServiceWorkerRegister() {
         console.warn("SW registration failed", e);
       });
     };
-    window.addEventListener("load", onLoad);
+    // The load event may have already fired by the time this effect runs
+    // (common with Next hydration), so register immediately in that case.
+    if (document.readyState === "complete") {
+      onLoad();
+      return;
+    }
+    window.addEventListener("load", onLoad, { once: true });
     return () => window.removeEventListener("load", onLoad);
   }, []);
   return null;

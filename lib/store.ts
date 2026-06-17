@@ -44,6 +44,11 @@ function hydrate(raw: any): UserState {
       recs: Array.isArray(raw.scan?.recs) ? raw.scan.recs : [],
       date: raw.scan?.date ?? null,
       suppressed: raw.scan?.suppressed ?? 0,
+      scanDays: Array.isArray(raw.scan?.scanDays)
+        ? raw.scan.scanDays
+        : raw.scan?.date
+          ? [String(raw.scan.date).slice(0, 10)]
+          : [],
     },
     coach: {
       messages: Array.isArray(raw.coach?.messages) ? raw.coach.messages : [],

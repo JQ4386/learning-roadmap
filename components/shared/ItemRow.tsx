@@ -16,6 +16,16 @@ export function ItemRow({
   onToggle: () => void;
 }) {
   const reduced = useReducedMotion();
+  // Only render outbound links for http(s) URLs (guards against javascript: etc.).
+  const safeUrl = (() => {
+    if (!item.url) return null;
+    try {
+      const u = new URL(item.url);
+      return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null;
+    } catch {
+      return null;
+    }
+  })();
   const [sweep, setSweep] = useState(false);
   const [pop, setPop] = useState(false);
   const prevDone = useRef(done);
@@ -61,9 +71,9 @@ export function ItemRow({
             {item.title}
           </div>
           <p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p>
-          {item.url && (
+          {safeUrl && (
             <a
-              href={item.url}
+              href={safeUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-2 inline-flex items-center gap-1 text-xs text-accent hover:underline"

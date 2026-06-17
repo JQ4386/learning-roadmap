@@ -63,6 +63,8 @@ function activityDays(state: UserState): Set<string> {
   Object.values(state.doneAt).forEach(add);
   state.gaps.forEach((g) => add(g.date));
   state.quiz.history.forEach((h) => add(h.date));
+  // Use the full scan-day history (state.scan.date only holds the latest scan).
+  (state.scan.scanDays || []).forEach(add);
   add(state.scan.date);
   return days;
 }

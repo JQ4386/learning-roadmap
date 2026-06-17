@@ -22,7 +22,7 @@ import type { Rec } from "@/lib/types";
 export const runtime = "nodejs";
 
 const PRIMARY_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
-const FALLBACK_MODEL = "gemini-3-flash";
+const FALLBACK_MODEL = "gemini-3.1-flash-lite";
 const COOLDOWN_MS = 15_000;
 const DAILY_CAP = 20;
 

@@ -65,12 +65,15 @@ export function Track({
     <div className="space-y-4">
       {phases.map((phase) => {
         const isOpen = open[phase.id];
+        const panelId = `phase-panel-${phase.id}`;
         const doneCount = phase.items.filter((i) => state.done[i.id]).length;
         const allDone = doneCount === phase.items.length;
         return (
           <section key={phase.id} className="anim-fadeSlideUp">
             <button
               onClick={() => setOpen((o) => ({ ...o, [phase.id]: !o[phase.id] }))}
+              aria-expanded={isOpen}
+              aria-controls={panelId}
               className="flex w-full items-center gap-2 text-left"
             >
               {isOpen ? (
@@ -92,7 +95,7 @@ export function Track({
             </button>
 
             {isOpen && (
-              <div className="relative mt-3 space-y-2 pl-3">
+              <div id={panelId} className="relative mt-3 space-y-2 pl-3">
                 {/* Section rail line behind the nodes */}
                 <div className="absolute bottom-3 left-[7px] top-3 w-px bg-border" aria-hidden />
                 {phase.items.map((item) => (

@@ -20,7 +20,7 @@ export function Gaps({
       d.gaps.unshift({
         id: "g_" + Date.now().toString(36),
         text: t,
-        date: new Date().toISOString().slice(0, 10),
+        date: new Intl.DateTimeFormat("en-CA").format(new Date()), // local YYYY-MM-DD
         resolved: false,
       });
     });

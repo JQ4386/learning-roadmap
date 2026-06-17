@@ -71,6 +71,7 @@ export type ScanState = {
   recs: Rec[];
   date: string | null;
   suppressed: number;
+  scanDays: string[]; // YYYY-MM-DD history of scan days (for streaks), capped
 };
 
 export type CoachMessage = { role: "user" | "model"; text: string; date: string };
@@ -107,7 +108,7 @@ export function emptyState(): UserState {
     quiz: { stats: {}, history: [] },
     achievements: {},
     bank: [],
-    scan: { trace: [], recs: [], date: null, suppressed: 0 },
+    scan: { trace: [], recs: [], date: null, suppressed: 0, scanDays: [] },
     coach: { messages: [] },
     scoutMeta: {},
   };

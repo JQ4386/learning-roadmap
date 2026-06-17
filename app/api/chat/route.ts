@@ -10,7 +10,7 @@ import { COACH_PROMPT, type CoachContext } from "@/domain/config";
 export const runtime = "nodejs";
 
 const PRIMARY_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
-const FALLBACK_MODEL = "gemini-3-flash";
+const FALLBACK_MODEL = "gemini-3.1-flash-lite";
 const COOLDOWN_MS = 2_000; // light anti-spam, per-process per-IP
 
 type Bucket = { last: number };
@@ -45,6 +45,9 @@ async function callGemini(
   });
 }
 
+// Note: x-forwarded-for is client-spoofable if not stripped by a trusted proxy.
+// That's acceptable here — this is only a light per-process anti-spam guard; the
+// durable per-user limit lives client-side in Firestore (scoutMeta).
 function clientKey(req: Request): string {
   const xff = req.headers.get("x-forwarded-for") || "";
   return xff.split(",")[0].trim() || req.headers.get("x-real-ip") || "anon";

@@ -56,6 +56,10 @@ export function Coach({
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length, sending]);
 
+  // `state` is captured from render and could be slightly stale, but that's safe:
+  // the `sending` mutex blocks concurrent calls, and the user message is pushed
+  // optimistically (below) before we build `apiMessages`, so the fetch always
+  // sees the latest thread.
   const send = async (text: string, kickoff: boolean) => {
     if (sending) return;
     const trimmed = text.trim();

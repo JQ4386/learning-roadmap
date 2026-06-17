@@ -13,7 +13,11 @@ export function Confetti({ fireKey }: { fireKey: number }) {
   const [pieces, setPieces] = useState<Piece[]>([]);
 
   useEffect(() => {
-    if (!fireKey || reduced) return;
+    if (reduced) {
+      setPieces([]); // clear any in-flight burst when reduced-motion turns on
+      return;
+    }
+    if (!fireKey) return;
     const next: Piece[] = Array.from({ length: 80 }, (_, i) => ({
       id: fireKey * 1000 + i,
       left: Math.random() * 100,

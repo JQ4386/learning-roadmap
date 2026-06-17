@@ -92,7 +92,9 @@ export function Scan({
       const suppressed: number = json.suppressed || 0;
 
       update((d) => {
-        d.scan = { trace, recs, date: today, suppressed };
+        // Preserve the scan-day history (for streaks); cap to last 400 days.
+        const days = Array.from(new Set([...(d.scan?.scanDays || []), today])).slice(-400);
+        d.scan = { trace, recs, date: today, suppressed, scanDays: days };
         // File a bank entry per kept item (FRESH INTEL fodder for the quiz).
         recs.forEach((r) => {
           const entry: BankEntry = {

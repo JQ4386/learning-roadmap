@@ -86,8 +86,8 @@ function recencyOf(qn: Question, state: UserState): number | null {
   let best: number | null = null;
   qn.src.forEach((id) => {
     if (state.done[id] && state.doneAt[id]) {
-      const t = new Date(state.doneAt[id]).getTime();
-      if (best === null || t > best) best = t;
+      const t = Date.parse(state.doneAt[id]);
+      if (Number.isFinite(t) && (best === null || t > best)) best = t;
     }
   });
   return best;

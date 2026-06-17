@@ -24,6 +24,8 @@ export function ProgressRing({
   const reduced = useReducedMotion();
   const [display, setDisplay] = useState(reduced ? value : 0);
   const raf = useRef<number | null>(null);
+  const displayRef = useRef(display);
+  displayRef.current = display;
 
   useEffect(() => {
     if (reduced) {
@@ -31,7 +33,7 @@ export function ProgressRing({
       return;
     }
     const start = performance.now();
-    const from = 0;
+    const from = displayRef.current; // animate from current value, not 0
     const dur = 900;
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / dur);

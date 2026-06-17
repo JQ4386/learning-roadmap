@@ -24,8 +24,7 @@ export const viewport: Viewport = {
   themeColor: "#0E1116",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // Intentionally allow pinch-zoom (no maximumScale/userScalable) for a11y.
   viewportFit: "cover",
 };
 
