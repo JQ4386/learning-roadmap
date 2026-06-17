@@ -1,0 +1,63 @@
+# Deploys Firestore security rules whenever firestore.rules (or this workflow /
+# firebase.json) changes on main. Auth uses a Google service-account JSON stored
+# as the FIREBASE_SERVICE_ACCOUNT repo secret — no long-lived CLI tokens.
+#
+# One-time setup:
+#   1. Firebase console > Project settings > Service accounts > Generate new
+#      private key. (Or GCP IAM: a service account with the "Firebase Rules
+#      Admin" + "Cloud Datastore Owner" roles.)
+#   2. GitHub repo > Settings > Secrets and variables > Actions > New repository
+#      secret named FIREBASE_SERVICE_ACCOUNT, paste the entire JSON as the value.
+# After that this runs automatically on every rules change.
+
+name: firestore rules
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firestore.rules"
+      - "firebase.json"
+      - ".github/workflows/firestore-rules.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Skip gracefully on forks / before the secret is configured.
+    if: ${{ github.repository == 'JQ4386/learning-roadmap' }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+
+      - name: Guard — require service-account secret
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set. See the header of this workflow for setup steps."
+            exit 1
+          fi
+
+      - name: Deploy Firestore rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          PROJECT_ID="$(node -p "require('$RUNNER_TEMP/sa.json').project_id")"
+          echo "Deploying rules to project: $PROJECT_ID"
+          npx --yes firebase-tools@13 deploy \
+            --only firestore:rules \
+            --project "$PROJECT_ID" \
+            --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"

@@ -14,7 +14,7 @@ import {
 import { auth, googleProvider, firebaseReady } from "@/lib/firebase";
 
 // Optional email allowlist. Empty = allow all signed-in users.
-const ALLOWLIST: string[] = [];
+const ALLOWLIST: string[] = ["jq4386@gmail.com"];
 
 export type AuthState = {
   user: User | null;
