@@ -2,7 +2,7 @@
 
 A personal, mobile-first **learning tracker PWA** for studying agent-pipeline
 orchestration. Installable to your phone home screen, works offline (shell), and
-syncs your progress across devices via Firestore. A built-in **scout** uses
+syncs your progress across devices via Supabase. A built-in **scout** uses
 Gemini (free tier) to surface genuinely-new research from the last ~14 days.
 
 Built with Next.js (App Router) + TypeScript + Tailwind, deployed to Vercel.
@@ -41,22 +41,25 @@ if you renumber curriculum IDs, update the quiz `src` references too.)
 npm install
 ```
 
-Dependencies: `next`, `react`, `react-dom`, `firebase`, `lucide-react`,
-plus dev: `typescript`, `tailwindcss`, `postcss`, `autoprefixer`, and the
-`@types/*` packages.
+Dependencies: `next`, `react`, `react-dom`, `@supabase/supabase-js`,
+`lucide-react`, plus dev: `typescript`, `tailwindcss`, `postcss`,
+`autoprefixer`, and the `@types/*` packages.
 
-### 2. Firebase (Firestore + Google Auth)
+### 2. Supabase (Postgres + Google Auth)
 
-1. Create a Firebase project at <https://console.firebase.google.com>.
-2. **Build → Firestore Database → Create database** (production mode is fine).
-3. **Build → Authentication → Sign-in method → enable Google.**
-4. **Project settings → Your apps → Web app** → copy the web config values into
-   `.env.local` (see below).
-5. Publish the Firestore security rules from [`firestore.rules`](firestore.rules):
-   a user may read/write only `users/{uid}` where `uid == request.auth.uid`.
-   (Firestore console → Rules, paste, Publish — or `firebase deploy --only firestore:rules`.)
-6. Add your app domain(s) under **Authentication → Settings → Authorized
-   domains** (Vercel gives you `*.vercel.app`; add your custom domain too).
+1. Create a Supabase project at <https://supabase.com/dashboard> — or, in
+   Vercel, add the **Supabase integration** to this project, which provisions a
+   project and injects `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   automatically.
+2. Apply the schema in [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql):
+   it creates the `user_state` table, enables Row-Level Security (each user may
+   read/write **only** their own row), and adds the table to the Realtime
+   publication. Run it via the **SQL Editor** (paste + Run) or
+   `supabase db push` with the Supabase CLI.
+3. **Authentication → Providers → Google → enable**, and add your Google OAuth
+   client ID/secret.
+4. **Authentication → URL Configuration** → add your site URL + redirect URLs
+   (Vercel gives you `*.vercel.app`; add your custom domain too).
 
 ### 3. Gemini scout API key (free tier)
 
@@ -79,13 +82,9 @@ prompts may be used by Google for training — fine for scouting public AI news;
 Copy `.env.local.example` to `.env.local` and fill in:
 
 ```bash
-# Firebase web config (public by design)
-NEXT_PUBLIC_FIREBASE_API_KEY=...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=...
+# Supabase (anon key is public by design)
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 
 # Gemini scout (SERVER ONLY)
 GEMINI_API_KEY=...
@@ -106,25 +105,27 @@ npm run typecheck
 vercel deploy
 ```
 
-Set the **same env vars** in **Vercel → Project → Settings → Environment
-Variables** (both the `NEXT_PUBLIC_FIREBASE_*` set and the server-only
-`GEMINI_API_KEY`). Then add your Vercel domain to Firebase Authorized domains.
+If you use the **Vercel Supabase integration**, the `NEXT_PUBLIC_SUPABASE_*`
+vars are injected for you; you only need to add the server-only `GEMINI_API_KEY`
+in **Vercel → Project → Settings → Environment Variables**. Then add your Vercel
+domain to **Supabase → Authentication → URL Configuration** (redirect URLs).
 
 ### 7. Add your users
 
-At this scale (2–3 known people) there's no allowlist — anyone who signs in with
-Google gets their own synced document. If you want to gate it, set `ALLOWLIST`
-to a few emails in [`lib/auth.ts`](lib/auth.ts).
+Sign-in is gated by `ALLOWLIST` in [`lib/auth.ts`](lib/auth.ts), currently set
+to a single email. Add more emails to that array to widen access, or set it back
+to `[]` to allow any Google account (each gets their own synced row).
 
 ---
 
 ## Architecture notes
 
-- **State**: one Firestore document per user at `users/{uid}`, mirroring the
-  `UserState` shape in [`lib/types.ts`](lib/types.ts). Writes are debounced
-  (400 ms) so a burst of checkbox taps is a single write; reads subscribe via
-  `onSnapshot` for live cross-device updates. On first load, any completed item
-  missing a `doneAt` date is stamped (migration).
+- **State**: one row per user in `public.user_state` (`user_id`, `state jsonb`,
+  `updated_at`), mirroring the `UserState` shape in [`lib/types.ts`](lib/types.ts).
+  Writes are debounced (400 ms) so a burst of checkbox taps is a single upsert;
+  reads subscribe via Supabase **Realtime** (Postgres Changes) for live
+  cross-device updates. On first load, any completed item missing a `doneAt`
+  date is stamped (migration).
 - **Scout** ([`app/api/scan/route.ts`](app/api/scan/route.ts)): server-side
   Route Handler holding `GEMINI_API_KEY`. Calls `gemini-3.5-flash` (falls back
   to `gemini-3-flash`) with Google Search grounding, parses the JSON robustly
@@ -137,7 +138,7 @@ to a few emails in [`lib/auth.ts`](lib/auth.ts).
 - **Dedup** ([`lib/dedup.ts`](lib/dedup.ts)) and **achievements**
   ([`lib/achievements.ts`](lib/achievements.ts)) are pure, isomorphic modules.
 - **PWA**: `public/manifest.json` + `public/sw.js` (network-first navigations
-  with an offline-shell fallback; never caches the scout API or Firebase).
+  with an offline-shell fallback; never caches the scout API or Supabase).
   The service worker registers only in production builds.
 - **Accessibility**: all animations are hand-rolled CSS keyframes and are fully
   disabled under `prefers-reduced-motion`.
@@ -146,5 +147,5 @@ to a few emails in [`lib/auth.ts`](lib/auth.ts).
 
 - The Gemini key is read only from the server env (`GEMINI_API_KEY`) and never
   ships to the client (verified: it does not appear in `.next/static`).
-- Firebase web config values are public by design; access is enforced by
-  Firestore rules + Auth, not by hiding them.
+- The Supabase URL + anon key are public by design; access is enforced by
+  Row-Level Security policies + Auth, not by hiding them.
