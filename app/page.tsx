@@ -52,15 +52,15 @@ export default function Home() {
     }
   }, [newlyEarned, clearNewlyEarned]);
 
-  // --- Firebase not configured ---
+  // --- Supabase not configured ---
   if (!ready) {
     return (
       <Centered>
         <h1 className="text-lg font-bold text-ink">Setup needed</h1>
         <p className="max-w-xs text-sm text-muted">
-          Firebase isn&apos;t configured. Copy <code className="text-accent">.env.local.example</code> to{" "}
+          Supabase isn&apos;t configured. Copy <code className="text-accent">.env.local.example</code> to{" "}
           <code className="text-accent">.env.local</code> and fill in your{" "}
-          <code className="text-accent">NEXT_PUBLIC_FIREBASE_*</code> values, then restart. See the README.
+          <code className="text-accent">NEXT_PUBLIC_SUPABASE_*</code> values, then restart. See the README.
         </p>
       </Centered>
     );

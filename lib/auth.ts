@@ -1,80 +1,98 @@
-// lib/auth.ts — Google sign-in hook. One tap, no passwords.
+// lib/auth.ts — Google sign-in hook (Supabase Auth). One tap, no passwords.
 // Optional allowlist: set ALLOWLIST to a few emails to gate sign-in at this
 // scale; leave empty to allow anyone who signs in (fine for 2-3 known users).
 
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import {
-  onAuthStateChanged,
-  signInWithPopup,
-  signOut as fbSignOut,
-  type User,
-} from "firebase/auth";
-import { auth, googleProvider, firebaseReady } from "@/lib/firebase";
+import { supabase, supabaseReady } from "@/lib/supabase";
 
 // Optional email allowlist. Empty = allow all signed-in users.
-const ALLOWLIST: string[] = [];
+const ALLOWLIST: string[] = ["jq4386@gmail.com"];
+
+// A storage-agnostic user shape. `uid` mirrors the old Firebase field name so
+// the rest of the app (e.g. useUserState(user.uid)) is unaffected by the swap.
+export type AuthUser = { uid: string; email: string | null };
 
 export type AuthState = {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
-  ready: boolean; // firebase configured
+  ready: boolean; // supabase configured
   error: string | null;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 /**
- * Manages Firebase authentication state with optional email allowlist gating.
+ * Manages Supabase authentication state with optional email allowlist gating.
  *
- * If an email allowlist is configured, users whose email is not in the list are automatically signed out. Provides methods to sign in via Google popup and sign out.
+ * If an email allowlist is configured, users whose email is not in the list are
+ * automatically signed out. Provides methods to sign in via Google OAuth and
+ * sign out.
  *
  * @returns The current authentication state and sign-in/sign-out operations.
  */
 export function useAuth(): AuthState {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!firebaseReady || !auth) {
+    if (!supabaseReady || !supabase) {
       setLoading(false);
       return;
     }
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u && ALLOWLIST.length && (!u.email || !ALLOWLIST.includes(u.email))) {
+
+    const apply = (sUser: { id: string; email?: string | null } | null) => {
+      if (
+        sUser &&
+        ALLOWLIST.length &&
+        (!sUser.email || !ALLOWLIST.includes(sUser.email))
+      ) {
         // Not on the allowlist — sign back out.
         setError("This account is not on the allowlist.");
-        fbSignOut(auth!);
+        supabase!.auth.signOut();
         setUser(null);
       } else {
         setError(null);
-        setUser(u);
+        setUser(sUser ? { uid: sUser.id, email: sUser.email ?? null } : null);
       }
       setLoading(false);
+    };
+
+    // Hydrate from any persisted session, then listen for changes (including the
+    // redirect back from Google OAuth).
+    supabase.auth.getSession().then(({ data }) => apply(data.session?.user ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      apply(session?.user ?? null);
     });
-    return () => unsub();
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   const signIn = useCallback(async () => {
-    if (!firebaseReady || !auth) {
-      setError("Firebase is not configured.");
+    if (!supabaseReady || !supabase) {
+      setError("Supabase is not configured.");
       return;
     }
     try {
       setError(null);
-      await signInWithPopup(auth, googleProvider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo:
+            typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (error) throw error;
     } catch (e: any) {
-      if (e?.code === "auth/popup-closed-by-user") return;
       setError(e?.message || "Sign-in failed.");
     }
   }, []);
 
   const signOut = useCallback(async () => {
-    if (!auth) return;
-    await fbSignOut(auth);
+    if (!supabase) return;
+    await supabase.auth.signOut();
   }, []);
 
-  return { user, loading, ready: firebaseReady, error, signIn, signOut };
+  return { user, loading, ready: supabaseReady, error, signIn, signOut };
 }

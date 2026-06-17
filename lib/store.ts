@@ -1,9 +1,10 @@
-// lib/store.ts — Firestore-backed state, replacing the prototype's window.storage.
+// lib/store.ts — Supabase-backed state, replacing the prototype's window.storage.
 //
 // Strategy:
-//   - One document per user at users/{uid}.
-//   - Read once on auth, then subscribe for cross-device live updates.
-//   - Debounce writes (400ms) so a burst of checkbox taps is one write.
+//   - One row per user in public.user_state: { user_id, state jsonb, updated_at }.
+//   - Read once on auth, then subscribe (Postgres Changes / Realtime) for
+//     cross-device live updates.
+//   - Debounce writes (400ms) so a burst of checkbox taps is one upsert.
 //   - Migration: on first load, stamp doneAt for any done item missing a date.
 //   - Achievements are evaluated on every change; newly-earned ids are surfaced
 //     for the UI to celebrate and the unlock dates are persisted.
@@ -11,23 +12,24 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { emptyState, type UserState } from "@/lib/types";
 import { diffAchievements } from "@/lib/achievements";
 
 const DEBOUNCE_MS = 400;
-const ECHO_SUPPRESS_MS = 1500; /**
+const ECHO_SUPPRESS_MS = 1500;
+const TABLE = "user_state";
+
+/**
  * Gets the current date and time in ISO 8601 format.
  *
  * @returns The current date and time in ISO 8601 format.
  */
-
 function todayIso(): string {
   return new Date().toISOString();
 }
 
-// Merge a possibly-partial Firestore document onto a complete default shape so
+// Merge a possibly-partial stored document onto a complete default shape so
 /**
  * Merges partial data with defaults to produce a complete UserState.
  *
@@ -94,11 +96,12 @@ export type Store = {
 };
 
 /**
- * Loads and synchronizes user state from Firestore with live updates and debounced writes.
+ * Loads and synchronizes user state from Supabase with live updates and debounced writes.
  *
- * Hydrates the initial document and performs a one-time migration of missing completion timestamps.
- * Subsequent changes from other devices are reflected in real-time. Local mutations are debounced
- * (400ms) before persisting. Achievements are recomputed on every local change, and newly earned IDs are tracked.
+ * Hydrates the initial row and performs a one-time migration of missing completion timestamps.
+ * Subsequent changes from other devices are reflected in real-time via Postgres Changes.
+ * Local mutations are debounced (400ms) before persisting. Achievements are recomputed on
+ * every local change, and newly earned IDs are tracked.
  *
  * @param uid - The user ID. If null, the subscription is disabled.
  * @returns A Store object containing the current user state, a ready flag, an update function, and accumulated newly earned achievement IDs.
@@ -115,13 +118,16 @@ export function useUserState(uid: string | null): Store {
   const pending = useRef<UserState | null>(null);
 
   const flush = useCallback(() => {
-    if (!uid || !db || !pending.current) return;
+    if (!uid || !supabase || !pending.current) return;
     const payload = pending.current;
     pending.current = null;
     suppressUntil.current = Date.now() + ECHO_SUPPRESS_MS;
-    setDoc(doc(db, "users", uid), payload as any, { merge: false }).catch((e) => {
-      console.error("Firestore write failed", e);
-    });
+    supabase
+      .from(TABLE)
+      .upsert({ user_id: uid, state: payload, updated_at: todayIso() })
+      .then(({ error }) => {
+        if (error) console.error("Supabase write failed", error);
+      });
   }, [uid]);
 
   const scheduleWrite = useCallback(
@@ -135,37 +141,53 @@ export function useUserState(uid: string | null): Store {
 
   // Read once + subscribe for cross-device updates.
   useEffect(() => {
-    if (!uid || !db) {
+    if (!uid || !supabase) {
       setReady(false);
       return;
     }
     setReady(false);
-    const ref = doc(db, "users", uid);
-    let first = true;
-    const unsub = onSnapshot(
-      ref,
-      (snap) => {
-        // Ignore echoes of our own recent write.
-        if (Date.now() < suppressUntil.current && !first) return;
-        const hydrated = hydrate(snap.exists() ? snap.data() : null);
-        if (first) {
-          const changed = migrate(hydrated);
-          setState(hydrated);
+    let cancelled = false;
+
+    // Initial read.
+    supabase
+      .from(TABLE)
+      .select("state")
+      .eq("user_id", uid)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("Supabase read failed", error);
           setReady(true);
-          first = false;
-          if (changed) scheduleWrite(hydrated);
-          if (!snap.exists()) scheduleWrite(hydrated); // create the doc
-        } else {
-          setState(hydrated);
+          return;
         }
-      },
-      (err) => {
-        console.error("Firestore subscribe failed", err);
+        const hydrated = hydrate(data?.state ?? null);
+        const changed = migrate(hydrated);
+        setState(hydrated);
         setReady(true);
-      }
-    );
+        // Persist a migration touch-up, or create the row if it didn't exist.
+        if (changed || !data) scheduleWrite(hydrated);
+      });
+
+    // Realtime: live cross-device updates. RLS still applies, so this channel
+    // only delivers changes to the caller's own row.
+    const channel = supabase
+      .channel(`user_state:${uid}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: TABLE, filter: `user_id=eq.${uid}` },
+        (payload) => {
+          // Ignore echoes of our own recent write.
+          if (Date.now() < suppressUntil.current) return;
+          const next = (payload.new as any)?.state;
+          if (next) setState(hydrate(next));
+        }
+      )
+      .subscribe();
+
     return () => {
-      unsub();
+      cancelled = true;
+      supabase!.removeChannel(channel);
       if (writeTimer.current) clearTimeout(writeTimer.current);
       flush();
     };
